@@ -5,9 +5,6 @@
 モデルアゴニスティックかつデプロイ環境を問わず使用できるよう設計されております。:contentReference[oaicite:2]{index=2}
 
 ## 前提条件  
-- Python 3.9 以上（または Java 17 以上）:contentReference[oaicite:3]{index=3}  
-- 仮想環境（推奨：`.venv`）  
-- 必要に応じて Google Cloud プロジェクト／環境変数設定 :contentReference[oaicite:4]{index=4}  
 
 ## 導入手順  
 
@@ -18,7 +15,17 @@ python -m venv .venv
 source .venv/bin/activate  
 # Windows (PowerShell)
 .\.venv\Scripts\Activate.ps1  
+```
+### スタート
+```bash
+(a2a-dev) root:~/work/a2a-dev$ adk run src/test_agent  
 
+#web
+#プロジェクト直下で
+(a2a-dev) root:~/work/a2a-dev$ adk web src/ --port 8000
+
+
+```
 ## 📚 公式リソース・出典一覧（Agent Development Kit / ADK）
 
 以下は Google 提供の Agent Development Kit (ADK) に関する  
