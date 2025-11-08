@@ -1,69 +1,58 @@
-# Project Name
+# ADK Flow Compiler
 
-## 概要  
-本プロジェクトは Agent Development Kit(ADK) を用いて、AIエージェント／マルチエージェント・ワークフローを構築するための基盤となるものです。  
-モデルアゴニスティックかつデプロイ環境を問わず使用できるよう設計されております。:contentReference[oaicite:2]{index=2}
+このリポジトリは、Mermaid で記述したフロー図から Google Agent Development Kit (ADK) 向けの ReAct ワークフロー (`workflow.py`) を自動生成し、`adk run` で実行できるようにするためのサンプル実装です。  
+最初に `docs/AgentDevelopmentKit_details.md` を読み、ADK の要件や `root_agent` 公開ルールを確認してください。
 
-## 前提条件  
+## セットアップ
 
-## 導入手順  
+1. **Python / uv**  
+   ```bash
+   uv python install 3.12
+   uv sync
+   ```
+   `pyproject.toml` には `google-adk`, `jinja2`, `rich`, `pytest`, `typing-extensions` を定義済みです。
 
-### 1. 仮想環境の作成  
+2. **API キー** (例: Google AI Studio)  
+   `.env` に `GOOGLE_API_KEY` など ADK で必要な値を設定します。
+
+## ワークフロー生成コマンド
+
+1. Mermaid → JSON
+   ```bash
+   uv run python src/flow_parser.py docs/sample_flow.md > flow.json
+   ```
+2. JSON → ADK ワークフロー
+   ```bash
+   uv run python src/compiler.py flow.json src/templates src/generated/workflow.py
+   ```
+3. ADK 実行 (CLI ラッパー経由でも可)
+   ```bash
+   uv run python src/run_workflow.py
+   # もしくは
+   adk run src/generated/workflow.py
+   ```
+
+## 生成される workflow.py の概要
+
+- 解析したノード/エッジ情報を `GRAPH_DEFINITION` として保持。
+- 各ノードごとに `google.adk.agents.Agent` を生成し、共通の ReAct 指示 (`BASE_REACT_INSTRUCTION`) と MCP モックツール (`tools/call_mcp_tool`) を紐付け。
+- ループ対象ノードは `LoopAgent(max_iterations=5)` でラップ。
+- 条件分岐ノードは `SelectorAgent` スタブにルート情報を残し、将来 `SelectorAgent` 実装に差し替えやすい構造にしています。
+- `SequentialAgent` がトップレベルの `root_agent` としてサブエージェントを順序実行します。
+
+## テスト
+
 ```bash
-python -m venv .venv  
-# Linux／macOS
-source .venv/bin/activate  
-# Windows (PowerShell)
-.\.venv\Scripts\Activate.ps1  
+uv run pytest -q
 ```
-### スタート
-```bash
-(a2a-dev) root:~/work/a2a-dev$ adk run src/test_agent  
 
-#web
-#プロジェクト直下で
-(a2a-dev) root:~/work/a2a-dev$ adk web src/ --port 8000
+- `tests/test_parser.py` : Mermaid 解析で selector / loop を検出できるか。
+- `tests/test_compiler.py` : Jinja2 テンプレートが `SequentialAgent` / `LoopAgent` / `SelectorAgent` を含むコードを生成するか。
+- `tests/test_workflow.py` : `src/generated/workflow.py` がインポートでき、`root_agent` が `SequentialAgent` になっているか。
 
+## 既知の制限
 
-```
-## 📚 公式リソース・出典一覧（Agent Development Kit / ADK）
-
-以下は Google 提供の Agent Development Kit (ADK) に関する  
-公式ドキュメントおよび開発者向け参考資料です。
-
----
-
-### 🧭 1. 公式ドキュメント（概要・導入・構成）
-- **Agent Development Kit (ADK) — Official Docs**  
-  👉 [https://google.github.io/adk-docs/](https://google.github.io/adk-docs/?utm_source=chatgpt.com)
-
----
-
-### ⚙️ 2. API リファレンス（Python／Java／CLI 仕様）
-- **ADK API Reference**  
-  👉 [https://google.github.io/adk-docs/api-reference/](https://google.github.io/adk-docs/api-reference/?utm_source=chatgpt.com)
-
----
-
-### 🚀 3. クイックスタートガイド
-- **Get Started with ADK (Quickstart for Python / Java)**  
-  👉 [https://google.github.io/adk-docs/get-started/quickstart/](https://google.github.io/adk-docs/get-started/quickstart/?utm_source=chatgpt.com)
-
----
-
-### 🧩 4. 開発ブログ・事例紹介
-- **Google Developers Blog — Easy Multi-Agent Application Development with ADK**  
-  👉 [https://developers.googleblog.com/en/agent-development-kit-easy-to-build-multi-agent-applications/](https://developers.googleblog.com/en/agent-development-kit-easy-to-build-multi-agent-applications/?utm_source=chatgpt.com)
-
----
-
-### 💻 5. GitHub リポジトリ（公式サンプル・コードベース）
-- **Google / adk-docs (GitHub)**  
-  👉 [https://github.com/google/adk-docs](https://github.com/google/adk-docs?utm_source=chatgpt.com)
-
----
-
-> 🪶 *出典：すべて Google 公式公開情報（2025年11月時点）。  
-> ドキュメントおよびリンク先は [Google Open Source](https://opensource.google/)  
-> 並びに [Google Developers Blog](https://developers.googleblog.com/) より引用。*
-
+- 条件分岐は `SelectorAgent` スタブで情報を保持するのみで、実行時のルーティングは最小限です。
+- ループ終了条件は LLM の指示ベースであり、`"OK"` を含む応答をアシスタントが返す想定です。
+- 複雑な並列実行・確率分岐・外部イベント駆動はサポートしていません。
+- 実運用時は `docs/AgentDevelopmentKit_details.md` に沿って `root_agent` の検証 (`adk web src --port 8000` など) を行ってください。

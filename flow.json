@@ -1,0 +1,81 @@
+{
+  "nodes": [
+    {
+      "id": "A",
+      "label": "Input",
+      "type": "llm",
+      "loop": false
+    },
+    {
+      "id": "C",
+      "label": "Weather",
+      "type": "llm",
+      "loop": false
+    },
+    {
+      "id": "D",
+      "label": "General",
+      "type": "llm",
+      "loop": false
+    },
+    {
+      "id": "E",
+      "label": "Refine",
+      "type": "llm",
+      "loop": true,
+      "metadata": {
+        "loop_reason": "edge_cycle"
+      }
+    },
+    {
+      "id": "F",
+      "label": "Finalize",
+      "type": "llm",
+      "loop": false
+    },
+    {
+      "id": "B",
+      "label": "天気の質問？",
+      "type": "selector",
+      "loop": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "A",
+      "to": "B",
+      "label": ""
+    },
+    {
+      "from": "B",
+      "to": "C",
+      "label": "Yes"
+    },
+    {
+      "from": "B",
+      "to": "D",
+      "label": "No"
+    },
+    {
+      "from": "C",
+      "to": "E",
+      "label": ""
+    },
+    {
+      "from": "D",
+      "to": "E",
+      "label": ""
+    },
+    {
+      "from": "E",
+      "to": "E",
+      "label": "loop",
+      "type": "loop"
+    },
+    {
+      "from": "E",
+      "to": "F",
+      "label": ""
+    }
+  ]
+}
